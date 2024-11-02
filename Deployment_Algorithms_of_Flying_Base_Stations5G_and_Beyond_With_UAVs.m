@@ -305,3 +305,127 @@ for j = 1:N
 end
 
 plot_UE_network_connections(uav_positions, bs_positions, ue_positions, b_U, b_F, area_size)
+
+
+
+
+
+%% Algorithm 3 Delete Redundant Connections Between BSs/UAVs and UEs
+
+% Parameters (from previous algorithms)
+Mmax_F = 2; % Maximum number of UEs per BS
+Mmax_H = 2;  % Maximum number of UEs per UAV
+
+% Inputs from Algorithm 2 (for demonstration, assumed initialized)
+% b_F, b_U, zeta_f, zeta_u, xi_f, xi_u, xi (association matrices and degrees)
+
+% Loop to remove redundant connections while there are UEs connected to more than one node
+while max(xi) > 1
+    % Step 1: Handle Redundant Connections for BSs
+    % cnt=1;
+    while max(xi_f) > 1  % Check if any UE is connected to multiple BSs
+        % cnt=cnt+1;
+        % disp(cnt);
+        % to delete i = find(zeta_f == max(zeta_f), 1);  % Find BS with the highest degree
+        [~, i] = max(zeta_f);
+    
+        % Find UEs connected to this BS
+        phi = find(b_F(i, :) == 1);  % Set of UEs connected to BS i
+        psi = xi_f(phi);             % Degrees of these UEs to BSs
+    
+        % Remove extra connections if BS degree exceeds Mmax_F
+        while length(phi) > Mmax_F
+            % Find the UE with the highest degree among the connected UEs
+            [~, k_idx] = max(psi);
+            k = phi(k_idx);
+    
+            % UE-BS important
+            b_F(i, k) = 0;  % Remove connection from BS i to UE k
+            zeta_f(i) = zeta_f(i) - 1;  % Decrease BS degree
+
+
+            xi_f(k) = xi_f(k) - 1;      % Decrease UE-BS degree
+            xi(k) = xi(k) - 1;          % Decrease total degree of UE
+            % Update variables after deletion
+            phi(k_idx) = [];
+            psi(k_idx) = [];
+            %
+    
+        end
+    
+    
+        % Remove all other connections to these UEs from different BSs
+        b_F(i, :) = 0;
+        for k = phi
+            b_F(:, k) = 0;  % Clear connections to other BSs for UE k
+            b_F(i, k) = 1;  % Retain only the connection to the current BS i
+            b_U(:, k) = 0; % ok
+
+        end
+        xi_f = sum(b_F)'; % ok   
+        xi_u = sum(b_U)'; % ok
+        zeta_f = sum(b_F, 2);  
+        zeta_u = sum(b_U, 2);  
+        xi = xi_f + xi_u; % ok
+    end
+    disp('Step 1 finished.');
+    
+    % Step 2: Handle Redundant Connections for UAVs
+    while max(xi_u) > 1  % Check if any UE is connected to multiple UAVs
+    
+        [~, j] = max(zeta_u);
+    
+        % Find UEs connected to this UAV
+        phi_prime = find(b_U(j, :) == 1);  % Set of UEs connected to UAV j
+        psi_prime = xi_u(phi_prime);       % Degrees of these UEs to UAVs
+        
+        % Remove extra connections if UAV degree exceeds Mmax_H
+        while length(phi_prime) > Mmax_H
+            % Find the UE with the highest degree among the connected UEs
+            [~, l_idx] = max(psi_prime);
+            l = phi_prime(l_idx);
+    
+            b_U(j, l) = 0;  % Remove connection from UAV j to UE l
+            zeta_u(j) = zeta_u(j) - 1;  % Decrease UAV degree
+            xi_u(l) = xi_u(l) - 1;      % Decrease UE-UAV degree
+            xi(l) = xi(l) - 1;          % Decrease total degree of UE
+    
+            % Update variables after deletion
+            phi_prime(l_idx) = [];
+            psi_prime(l_idx) = [];
+    
+        end
+        
+        % Remove all other connections to these UEs from different UAVs
+        b_U(j, :) = 0;
+        for l = phi_prime
+            b_U(:, l) = 0;  % Clear connections to other UAVs for UE l
+            b_U(j, l) = 1;  % Retain only the connection to the current UAV j
+        end
+    
+        xi_u = sum(b_U)'; % ok
+        zeta_u = sum(b_U, 2);  
+        xi = xi_f + xi_u; % ok
+    
+    end
+    
+    % Step 3: Final Check for UEs with Multiple Connections
+    if max(xi) > 1  % There are still UEs connected to both BSs and UAVs
+        phi_double = find(xi > 1);  % UEs with multiple connections
+        % Remove UAV connections for these UEs
+        for k = phi_double
+            b_U(:, k) = 0;  % Set all UAV connections for UE k to 0
+        end
+    end
+    
+    % Update matrices and degrees after removal of redundant connections
+    zeta_f = sum(b_F, 2);  % Recalculate BS degrees
+    zeta_u = sum(b_U, 2);  % Recalculate UAV degrees
+    xi_f = sum(b_F, 1)';   % Recalculate UE degrees for BS connections
+    xi_u = sum(b_U, 1)';   % Recalculate UE degrees for UAV connections
+    xi = xi_f + xi_u;      % Recalculate total degree of each UE
+end
+
+
+plot_UE_network_connections(uav_positions, bs_positions, ue_positions, b_U, b_F, area_size)
+

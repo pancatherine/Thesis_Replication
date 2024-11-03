@@ -43,10 +43,10 @@ function plot_UAV_connections(uav_positions, bs_positions, ue_positions, c_U, c_
     for i = 1:N
         for j = i+1:N
             if c_U(i, j) == 1
-                plot([uav_positions(i, 1), uav_positions(j, 1)], [uav_positions(i, 2), uav_positions(j, 2)], 'g-', 'LineWidth', 1.5); % Active UAV-to-UAV connection
+                plot([uav_positions(i, 1), uav_positions(j, 1)], [uav_positions(i, 2), uav_positions(j, 2)], 'r-', 'LineWidth', 1.5); % Active UAV-to-UAV connection
                
             else
-                plot([uav_positions(i, 1), uav_positions(j, 1)], [uav_positions(i, 2), uav_positions(j, 2)], 'g--', 'LineWidth', 1); % Inactive UAV-to-UAV connection
+                plot([uav_positions(i, 1), uav_positions(j, 1)], [uav_positions(i, 2), uav_positions(j, 2)], 'r--', 'LineWidth', 1); % Inactive UAV-to-UAV connection
      
             end
         end
@@ -57,9 +57,9 @@ function plot_UAV_connections(uav_positions, bs_positions, ue_positions, c_U, c_
     for i = 1:F
         for j = 1:N
             if c_F(i, j) == 1
-                plot([bs_positions(i, 1), uav_positions(j, 1)], [bs_positions(i, 2), uav_positions(j, 2)], 'b-', 'LineWidth', 1.5); % Active BS-to-UAV connection
+                plot([bs_positions(i, 1), uav_positions(j, 1)], [bs_positions(i, 2), uav_positions(j, 2)], 'y-', 'LineWidth', 1); % Active BS-to-UAV connection
             else
-                plot([bs_positions(i, 1), uav_positions(j, 1)], [bs_positions(i, 2), uav_positions(j, 2)], 'b--', 'LineWidth', 1); % Inactive BS-to-UAV connection
+                plot([bs_positions(i, 1), uav_positions(j, 1)], [bs_positions(i, 2), uav_positions(j, 2)], 'y--', 'LineWidth', 1); % Inactive BS-to-UAV connection
             end
         end
     end
@@ -124,7 +124,7 @@ function plot_UE_network_connections(uav_positions, bs_positions, ue_positions, 
     for j = 1:N
         for k = 1:M
             if b_U(j, k) == 1
-                plot([uav_positions(j, 1), ue_positions(k, 1)], [uav_positions(j, 2), ue_positions(k, 2)], 'g-', 'LineWidth', 1.5); % Active UAV-to-UE connection
+                plot([uav_positions(j, 1), ue_positions(k, 1)], [uav_positions(j, 2), ue_positions(k, 2)], 'g-', 'LineWidth', 1.0); % Active UAV-to-UE connection
             end
         end
     end
@@ -139,15 +139,19 @@ end
 
 
 
-%% Algorithm 1 Initialization
+% Algorithm 1 Initialization
 
 % Parameters
 N = 2; % Number of UAVs (example)
 F = 1;  % Number of BSs (example)
-M = 4; % Number of UEs (example)
+M = 3; % Number of UEs (example)
+% N = 6; % Number of UAVs (example)
+% F = 2;  % Number of BSs (example)
+% M = 4; % Number of UEs (example)
 Rc = 100; % Communication range threshold
 Rt = 50; % Maximum coverage radius for UAVs
 sqrt3Rt = sqrt(3) * Rt;
+
 
 % Initialize variables
 a = ones(N, 1);        % State of each UAV (1 = active, 0 = idle)
@@ -159,10 +163,18 @@ c_U = zeros(N, N);     % Single-hop connection matrix among UAVs
 c_F = zeros(F, N);     % Single-hop connection matrix between BSs and UAVs
 
 % Random positions for demonstration (assuming a 2D plane for simplicity)
-uav_positions = rand(N, 2) * 200; % Positions of UAVs (e.g., in a 500x500 area)
-bs_positions = rand(F, 2) * 200;  % Positions of BSs
-ue_positions = rand(M, 2) * 200;  % Positions of UEs
+% uav_positions = rand(N, 2) * 200; % Positions of UAVs (e.g., in a 500x500 area)
+% bs_positions = rand(F, 2) * 200;  % Positions of BSs
+% ue_positions = rand(M, 2) * 200;  % Positions of UEs
 
+% bs_positions = [20,0;80,0]; % Positions of BSs
+% uav_positions = [0,40;20,40;40,40;60,40;80,40;100,40]; % Positions of UAVs (e.g., in a 500x500 area)
+% 
+% ue_positions =[20,20;40,20;60,20;80,20];  % Positions of UEs
+bs_positions = [50,0]; % Positions of BSs
+uav_positions = [40,40;60,40]; % Positions of UAVs (e.g., in a 500x500 area)
+
+ue_positions =[20,20;50,20;80,20];  % Positions of UEs
 
 % Calculate distances and populate connection matrices
 for i = 1:N
@@ -194,7 +206,7 @@ plot_UAV_connections(uav_positions, bs_positions, ue_positions, c_U, c_F, area_s
 
 
 
-%% 
+%
 % Algorithm 2 Build/Update Connection Graphs
 
 % Parameters
@@ -204,7 +216,7 @@ f0 = 2e9; % Carrier frequency in Hz (example: 2 GHz)
 c = 3e8; % Speed of light in m/s
 
 % Const for connection
-SINR_threshold = 1;  % SINR threshold for connection
+SINR_threshold = 0.2;  % SINR threshold for connection
 ph = 0.1;             % Transmission power for UAVs
 pf = 0.2;             % Transmission power for BSs
 N0 = 1e-3;            % Noise power
@@ -307,10 +319,7 @@ end
 plot_UE_network_connections(uav_positions, bs_positions, ue_positions, b_U, b_F, area_size)
 
 
-
-
-
-%% Algorithm 3 Delete Redundant Connections Between BSs/UAVs and UEs
+% Algorithm 3 Delete Redundant Connections Between BSs/UAVs and UEs
 
 % Parameters (from previous algorithms)
 Mmax_F = 2; % Maximum number of UEs per BS
@@ -320,10 +329,12 @@ Mmax_H = 2;  % Maximum number of UEs per UAV
 % b_F, b_U, zeta_f, zeta_u, xi_f, xi_u, xi (association matrices and degrees)
 
 % Loop to remove redundant connections while there are UEs connected to more than one node
+
+
 while max(xi) > 1
     % Step 1: Handle Redundant Connections for BSs
     % cnt=1;
-    while max(xi_f) > 1  % Check if any UE is connected to multiple BSs
+    while max(xi_f) > 1 || length( find(b_F(i, :) == 1)) > Mmax_F % Check if any UE is connected to multiple BSs
         % cnt=cnt+1;
         % disp(cnt);
         % to delete i = find(zeta_f == max(zeta_f), 1);  % Find BS with the highest degree
@@ -332,18 +343,15 @@ while max(xi) > 1
         % Find UEs connected to this BS
         phi = find(b_F(i, :) == 1);  % Set of UEs connected to BS i
         psi = xi_f(phi);             % Degrees of these UEs to BSs
-    
+
         % Remove extra connections if BS degree exceeds Mmax_F
         while length(phi) > Mmax_F
             % Find the UE with the highest degree among the connected UEs
             [~, k_idx] = max(psi);
-            k = phi(k_idx);
-    
+            k = phi(k_idx); 
             % UE-BS important
             b_F(i, k) = 0;  % Remove connection from BS i to UE k
             zeta_f(i) = zeta_f(i) - 1;  % Decrease BS degree
-
-
             xi_f(k) = xi_f(k) - 1;      % Decrease UE-BS degree
             xi(k) = xi(k) - 1;          % Decrease total degree of UE
             % Update variables after deletion
@@ -362,8 +370,8 @@ while max(xi) > 1
             b_U(:, k) = 0; % ok
 
         end
-        xi_f = sum(b_F)'; % ok   
-        xi_u = sum(b_U)'; % ok
+        xi_f = sum(b_F,1)'; % ok   
+        xi_u = sum(b_U,1)'; % ok
         zeta_f = sum(b_F, 2);  
         zeta_u = sum(b_U, 2);  
         xi = xi_f + xi_u; % ok
@@ -428,4 +436,3 @@ end
 
 
 plot_UE_network_connections(uav_positions, bs_positions, ue_positions, b_U, b_F, area_size)
-

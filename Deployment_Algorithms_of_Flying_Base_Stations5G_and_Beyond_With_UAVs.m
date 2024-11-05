@@ -43,7 +43,7 @@ function plot_UAV_connections(uav_positions, bs_positions, ue_positions, c_U, c_
     for i = 1:N
         for j = i+1:N
             if c_U(i, j) == 1
-                plot([uav_positions(i, 1), uav_positions(j, 1)], [uav_positions(i, 2), uav_positions(j, 2)], 'r-', 'LineWidth', 1.5); % Active UAV-to-UAV connection
+                plot([uav_positions(i, 1), uav_positions(j, 1)], [uav_positions(i, 2), uav_positions(j, 2)], 'r-', 'LineWidth', 1); % Active UAV-to-UAV connection
                
             else
                 plot([uav_positions(i, 1), uav_positions(j, 1)], [uav_positions(i, 2), uav_positions(j, 2)], 'r--', 'LineWidth', 1); % Inactive UAV-to-UAV connection
@@ -57,9 +57,9 @@ function plot_UAV_connections(uav_positions, bs_positions, ue_positions, c_U, c_
     for i = 1:F
         for j = 1:N
             if c_F(i, j) == 1
-                plot([bs_positions(i, 1), uav_positions(j, 1)], [bs_positions(i, 2), uav_positions(j, 2)], 'y-', 'LineWidth', 1); % Active BS-to-UAV connection
+                plot([bs_positions(i, 1), uav_positions(j, 1)], [bs_positions(i, 2), uav_positions(j, 2)], 'm-', 'LineWidth', 1); % Active BS-to-UAV connection
             else
-                plot([bs_positions(i, 1), uav_positions(j, 1)], [bs_positions(i, 2), uav_positions(j, 2)], 'y--', 'LineWidth', 1); % Inactive BS-to-UAV connection
+                plot([bs_positions(i, 1), uav_positions(j, 1)], [bs_positions(i, 2), uav_positions(j, 2)], 'm--', 'LineWidth', 1); % Inactive BS-to-UAV connection
             end
         end
     end
@@ -140,11 +140,23 @@ end
 
 
 % Algorithm 1 Initialization
+% Random positions for demonstration (assuming a 2D plane for simplicity)
+% uav_positions = rand(N, 2) * 200; % Positions of UAVs (e.g., in a 500x500 area)
+% bs_positions = rand(F, 2) * 200;  % Positions of BSs
+% ue_positions = rand(M, 2) * 200;  % Positions of UEs
+
+bs_positions = [40,0;60,0]; % Positions of BSs
+uav_positions = [20,30;50,30;80,30]; % Positions of UAVs (e.g., in a 500x500 area)
+ue_positions =[0,100; 20,100;50,100;80,100;100,100];  % Positions of UEs
+
 
 % Parameters
-N = 2; % Number of UAVs (example)
-F = 1;  % Number of BSs (example)
-M = 3; % Number of UEs (example)
+% N = 2; % Number of UAVs (example)
+% F = 2;  % Number of BSs (example)
+% M = 3; % Number of UEs (example)
+N = size(uav_positions, 1);
+F = size(bs_positions, 1);
+M = size(ue_positions, 1);
 % N = 6; % Number of UAVs (example)
 % F = 2;  % Number of BSs (example)
 % M = 4; % Number of UEs (example)
@@ -155,26 +167,13 @@ sqrt3Rt = sqrt(3) * Rt;
 
 % Initialize variables
 a = ones(N, 1);        % State of each UAV (1 = active, 0 = idle)
-U_r = 1:N;             % Set of candidate UAVs for possible deletion
-U_f = [];              % Set of idle UAVs that cannot be deleted
+
 
 % Initialize connection matrices
 c_U = zeros(N, N);     % Single-hop connection matrix among UAVs
 c_F = zeros(F, N);     % Single-hop connection matrix between BSs and UAVs
 
-% Random positions for demonstration (assuming a 2D plane for simplicity)
-% uav_positions = rand(N, 2) * 200; % Positions of UAVs (e.g., in a 500x500 area)
-% bs_positions = rand(F, 2) * 200;  % Positions of BSs
-% ue_positions = rand(M, 2) * 200;  % Positions of UEs
 
-% bs_positions = [20,0;80,0]; % Positions of BSs
-% uav_positions = [0,40;20,40;40,40;60,40;80,40;100,40]; % Positions of UAVs (e.g., in a 500x500 area)
-% 
-% ue_positions =[20,20;40,20;60,20;80,20];  % Positions of UEs
-bs_positions = [50,0]; % Positions of BSs
-uav_positions = [40,40;60,40]; % Positions of UAVs (e.g., in a 500x500 area)
-
-ue_positions =[20,20;50,20;80,20];  % Positions of UEs
 
 % Calculate distances and populate connection matrices
 for i = 1:N
@@ -318,7 +317,7 @@ end
 
 plot_UE_network_connections(uav_positions, bs_positions, ue_positions, b_U, b_F, area_size)
 
-
+%
 % Algorithm 3 Delete Redundant Connections Between BSs/UAVs and UEs
 
 % Parameters (from previous algorithms)
@@ -334,11 +333,11 @@ Mmax_H = 2;  % Maximum number of UEs per UAV
 while max(xi) > 1
     % Step 1: Handle Redundant Connections for BSs
     % cnt=1;
-    while max(xi_f) > 1 || length( find(b_F(i, :) == 1)) > Mmax_F % Check if any UE is connected to multiple BSs
+    while max(xi_f) > 1 %|| length( find(b_F(i, :) == 1)) > Mmax_F % Check if any UE is connected to multiple BSs
         % cnt=cnt+1;
         % disp(cnt);
-        % to delete i = find(zeta_f == max(zeta_f), 1);  % Find BS with the highest degree
-        [~, i] = max(zeta_f);
+       
+        [~, i] = max(zeta_f);% Find BS with the highest degree
     
         % Find UEs connected to this BS
         phi = find(b_F(i, :) == 1);  % Set of UEs connected to BS i
@@ -370,6 +369,33 @@ while max(xi) > 1
             b_U(:, k) = 0; % ok
 
         end
+
+
+    while max(sum(b_F, 2))> Mmax_F
+        zataf = sum(b_F, 2)';
+        problem_BS_indices = find(zataf > Mmax_F);
+        for BS = problem_BS_indices
+            zataf = sum(b_F, 2)';
+            zatau = sum(b_U, 2)';
+        
+            xif = sum(b_F, 1);
+            xiu = sum(b_U, 1);
+        
+            ue_BSi = b_F(BS,:);
+            ue_Indices = find(ue_BSi ~= 0);
+            degree_ue = xif(ue_Indices) + xiu(ue_Indices);
+        
+            
+            [~, max_ue_indice] = max(degree_ue);
+            original_ue_index = ue_Indices(max_ue_indice);
+            
+            b_F(BS,original_ue_index) = 0;
+            
+            % degree_f = sum(b_F, 2)'
+        
+        end
+    end
+
         xi_f = sum(b_F,1)'; % ok   
         xi_u = sum(b_U,1)'; % ok
         zeta_f = sum(b_F, 2);  
@@ -379,31 +405,59 @@ while max(xi) > 1
     disp('Step 1 finished.');
     
     % Step 2: Handle Redundant Connections for UAVs
-    while max(xi_u) > 1  % Check if any UE is connected to multiple UAVs
-    
-        [~, j] = max(zeta_u);
+    while max(xi_u) > 1 %|| length( find(b_U(j, :) == 1)) > Mmax_H % Check if any UE is connected to multiple UAVs
+        xi_u_copy = xi_u;
+        [~, j] = max(zeta_u); % Find UAV with the highest degree
     
         % Find UEs connected to this UAV
         phi_prime = find(b_U(j, :) == 1);  % Set of UEs connected to UAV j
         psi_prime = xi_u(phi_prime);       % Degrees of these UEs to UAVs
         
         % Remove extra connections if UAV degree exceeds Mmax_H
-        while length(phi_prime) > Mmax_H
-            % Find the UE with the highest degree among the connected UEs
-            [~, l_idx] = max(psi_prime);
-            l = phi_prime(l_idx);
-    
-            b_U(j, l) = 0;  % Remove connection from UAV j to UE l
-            zeta_u(j) = zeta_u(j) - 1;  % Decrease UAV degree
-            xi_u(l) = xi_u(l) - 1;      % Decrease UE-UAV degree
-            xi(l) = xi(l) - 1;          % Decrease total degree of UE
-    
-            % Update variables after deletion
-            phi_prime(l_idx) = [];
-            psi_prime(l_idx) = [];
-    
-        end
+        if length(phi_prime) > Mmax_H
+            while length(phi_prime) > Mmax_H
+                % Find the UE with the highest degree among the connected UEs
+                [~, l_idx] = max(psi_prime);
+                l = phi_prime(l_idx);
         
+                b_U(j, l) = 0;  % Remove connection from UAV j to UE l
+                zeta_u(j) = zeta_u(j) - 1;  % Decrease UAV degree
+                xi_u(l) = xi_u(l) - 1;      % Decrease UE-UAV degree
+                xi(l) = xi(l) - 1;          % Decrease total degree of UE
+        
+                % Update variables after deletion
+                phi_prime(l_idx) = [];
+                psi_prime(l_idx) = [];
+        
+            end
+        else
+                     
+            % no change, manually delete the extra link    
+            if xi_u_copy == xi_u
+                v = b_U(:,j);
+                nonZeroIndices = find(v ~= 0);
+                nonZeroIndices = nonZeroIndices';
+                zeta_u = sum(b_U, 2)';
+                % 获取这些索引对应的值
+                values = zeta_u(nonZeroIndices);
+                
+                % 找到最大值的索引
+                [~, maxIdx] = max(values);
+                % 对应的原始索引
+                maxIndexInOriginal = nonZeroIndices(maxIdx);
+                % 保maxIndexInOriginal，删其他的
+    
+                nonZeroIndices(nonZeroIndices == maxIndexInOriginal) = [];
+     
+                b_U(:, j) = 0;
+                b_U(maxIndexInOriginal, j) = 1;
+    
+                phi_prime = find(b_U(j, :) == 1);  % Set of UEs connected to UAV j
+                psi_prime = xi_u(phi_prime);       % Degrees of these UEs to UAVs
+    
+    
+            end
+        end
         % Remove all other connections to these UEs from different UAVs
         b_U(j, :) = 0;
         for l = phi_prime
@@ -436,3 +490,103 @@ end
 
 
 plot_UE_network_connections(uav_positions, bs_positions, ue_positions, b_U, b_F, area_size)
+
+
+
+
+
+
+
+
+% Algorithm 4 Check Network Bi-Connectivity Upon Deletion of Idle UAV
+
+% Inputs from the previous algorithms (assumed initialized)
+% N: Total number of UAVs
+% c_U: Connectivity matrix among UAVs (N x N)
+% a: State vector of UAVs (1 = active, 0 = idle)
+
+% Function to check if network remains bi-connected if UAV i is deleted
+function rb = check_bi_connectivity(i, c_U, a)
+    % Initialize rb to 1 (assuming the network is bi-connected initially)
+    rb = 1;
+    
+    % Create the set of active UAVs excluding UAV i
+    active_UAVs = find(a == 1); % Indices of active UAVs
+    active_UAVs(active_UAVs == i) = []; % Remove the UAV being tested for deletion
+
+    % Loop over each UAV in the active set to simulate its removal along with UAV i
+    for index = 1:length(active_UAVs)
+        r = active_UAVs(index);
+        
+        % Create a temporary connectivity matrix excluding UAVs i and r
+        temp_c_U = c_U;
+        temp_c_U(i, :) = 0; % Set row and column of UAV i to 0
+        temp_c_U(:, i) = 0;
+        temp_c_U(r, :) = 0; % Set row and column of UAV r to 0
+        temp_c_U(:, r) = 0;
+
+        % Get the remaining UAVs after excluding i and r
+        remaining_UAVs = setdiff(active_UAVs, r);
+        
+        % Check connectivity among remaining UAVs using BFS
+        connected = true;
+        for j = 1:length(remaining_UAVs)
+            for k = j+1:length(remaining_UAVs)
+                % Perform BFS from UAV j to UAV k
+                if ~bfs_connected(temp_c_U, remaining_UAVs(j), remaining_UAVs(k), remaining_UAVs)
+                    connected = false;
+                    % disp('Deleting the idle UAV would break the bi-connectivity of the network.');
+                    break;
+                end
+            end
+            if ~connected
+                % disp('Deleting the idle UAV would break the bi-connectivity of the network.');
+                break;
+            end
+        end
+        
+        % If any pair is not connected, set rb to 0 and exit
+        if ~connected
+            rb = 0;
+            % disp('Deleting the idle UAV would break the bi-connectivity of the network.');
+            return;
+        end
+    end
+end
+
+% Helper function to perform BFS and check connectivity between two nodes
+function isConnected = bfs_connected(temp_c_U, start_node, end_node, valid_nodes)
+    % Initialize BFS variables
+    queue = [start_node];     % Queue to hold nodes for BFS traversal
+    visited = false(size(temp_c_U, 1), 1); % Keep track of visited nodes
+    visited(start_node) = true;
+
+    % BFS loop
+    while ~isempty(queue)
+        current_node = queue(1); % Dequeue the front node
+        queue(1) = [];           % Remove it from the queue
+        
+        % Check if we reached the target node
+        if current_node == end_node
+            isConnected = true;
+            return;
+        end
+        
+        % Find neighbors of the current node
+        neighbors = find(temp_c_U(current_node, :) == 1);
+        neighbors = intersect(neighbors, valid_nodes); % Restrict to valid nodes
+        
+        % Add unvisited neighbors to the queue
+        for neighbor = neighbors
+            if ~visited(neighbor)
+                queue(end + 1) = neighbor; % Enqueue neighbor
+                visited(neighbor) = true;
+            end
+        end
+    end
+    
+    % If BFS completes without finding the end node, they are not connected
+    isConnected = false;
+end
+
+

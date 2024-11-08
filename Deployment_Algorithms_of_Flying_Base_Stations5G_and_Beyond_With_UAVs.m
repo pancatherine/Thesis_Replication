@@ -590,3 +590,135 @@ function isConnected = bfs_connected(temp_c_U, start_node, end_node, valid_nodes
 end
 
 
+
+
+
+
+%Algorithm 5 Delete Idle UAVs After Checking Constraints and Retrospect
+% Parameters and Inputs from previous algorithms (assumed initialized)
+% - U_r: Set of candidate UAVs for deletion
+% - U_f: Set of idle UAVs that cannot be deleted due to constraints
+% - c_U: Connectivity matrix among UAVs (N x N)
+% - a: State vector of UAVs (1 = active, 0 = idle)
+% - b_F, b_U: Association matrices between BSs/UAVs and UEs
+% - C5, C6, C7: Boolean results for constraints (example placeholders here)
+% - Fth: Resultant force threshold to stop UAVs
+% - Rt: Coverage radius
+% - Rc: Communication range threshold
+
+% C5
+function C5_or_not = C5(b_F, b_U, Connectivity_limit)
+    totalSum_b_F = sum(b_F(:));
+    totalSum_b_U = sum(b_U(:));
+    total_b_FU = totalSum_b_F + totalSum_b_U;
+    if  total_b_FU >= Connectivity_limit
+        disp('Constraint C5 is satisfied.');
+        C5_or_not = 1; % All elements are smaller than 1
+    else
+        disp('Constraint C5 is NOT satisfied.');
+        C5_or_not = 0; % At least one element is not smaller than 1
+    end
+end
+
+% C7
+function C7_or_not = C7(c_F)
+    % Calculate the sum of each column
+    columnSums = sum(c_F, 1);
+    % Count the number of columns with a sum greater than 0
+    nonZeroColumns = (columnSums > 0);
+    nonZeroColumns = double(nonZeroColumns);
+    count = sum(nonZeroColumns);
+    % Check if the constraint is satisfied
+    if count >= 2
+        disp('Constraint C7 is satisfied.');
+        C7_or_not = 1;
+    else
+        disp('Constraint C7 is NOT satisfied.');
+        C7_or_not = 0;
+    end
+end
+
+
+
+% Function to delete idle UAVs after checking constraints and retrospect
+function final_to_delete = delete_idle_uavs(U_r, U_f, c_U, c_F, a, b_F, b_U, Connectivity_limit)
+    % Iterate over idle UAVs in U_r
+    final_to_delete = U_r;
+    for m = U_r
+        c_F_modified = c_F;
+        c_F_modified(:, m) = 0;
+
+        b_U_modified = b_U;
+        b_U_modified(m, :) = 0;
+
+        % Execute Algorithm 4 to check constraint C6 (bi-connectivity)
+        if check_bi_connectivity(m, c_U, a)
+            % Check additional constraints C5 and C7
+            if  C5(b_F, b_U_modified, Connectivity_limit) && C7(c_F_modified)
+
+            
+                % Delete the idle UAV m by setting its transmit power to 0
+                disp('Deleting idle UAV ');
+                disp(m);
+                a(m) = 0; % Mark UAV m as deleted in state vector
+                c_U(m, :) = 0; % Remove connections from UAV m in connectivity matrix
+                c_U(:, m) = 0;
+                c_F(:, m) = 0;
+                                
+                b_U(m, :) = 0; % ?? Remove associations between UAV m and all UEs
+
+                % Update U_r and U_f
+                % final_to_delete(final_to_delete == m) = []; % Remove UAV m from U_r
+                U_f(U_f == m) = []; % Ensure UAV m is not in U_f
+            else
+                % If constraints C5 or C7 fail, add UAV m to U_f and keep active
+                disp(['Keeping idle UAV ', num2str(m), ' due to constraint failure.']);
+                U_f = unique([U_f, m]); % Add UAV m to U_f if it cannot be deleted
+                a(m) = 1; % Ensure UAV m remains active
+                final_to_delete(final_to_delete == m) = []; % Remove UAV m from U_r
+            end
+        else
+            % If bi-connectivity check fails, add UAV m to U_f and keep active
+            disp(['Bi-connectivity check failed for UAV ', num2str(m)]);
+            U_f = unique([U_f, m]); % Add UAV m to U_f if it cannot be deleted
+            a(m) = 1; % Ensure UAV m remains active
+            final_to_delete(final_to_delete == m) = []; % Remove UAV m from U_r
+
+        end
+    end
+end
+
+% Example usage
+tau=0.1;
+Connectivity_limit = (1-tau)*M;
+active = zeta_u ~= 0;
+active = double(active);
+
+
+
+
+% idle_UAV_index
+U_r = find(active == 0)';
+% result = check_bi_connectivity(idle_UAV, c_U, active);
+U_f = [];        % Start with no idle UAVs that can't be deleted
+
+
+% Execute the deletion algorithm
+final_to_delete = delete_idle_uavs(U_r, U_f, c_U, c_F, active, b_F, b_U, Connectivity_limit);
+
+% % Display final state of UAVs and sets
+% disp('Final state vector (a):');
+% disp(active);
+% 
+% disp('Final set of candidate UAVs for deletion (U_r):');
+% disp(U_r);
+% 
+% disp('Final set of idle UAVs that cannot be deleted (U_f):');
+% disp(U_f);
+
+uav_positions(final_to_delete, :) = [];
+plot_UE_network_connections(uav_positions, bs_positions, ue_positions, b_U, b_F, area_size)
+
+plot_UAV_connections(uav_positions, bs_positions, ue_positions, c_U, c_F, area_size)
+
+
